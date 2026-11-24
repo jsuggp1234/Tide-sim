@@ -584,7 +584,7 @@ footer p + p { margin-top: 4px; }
     <div class="card" style="margin-top:12px">
       <h3>3D로 보기 · 찾은 높이가 기단의 어느 부분이 되나 <small id="d3-sub"></small></h3>
       <div class="cv3" id="d-3d"><canvas id="d-cv3" aria-label="지금 만드는 변수가 놓이는 기단 부분 3D"></canvas><span class="hint">끌어서 돌리기 · 휠로 확대 · 두 번 눌러 처음 모습</span><span class="tag" id="d3-tag"></span></div>
-      <p class="note" style="margin-top:6px">바닷물이 기록을 아래에서 위로 훑는 높이까지 차오릅니다. 조건이 채워지는 높이에 닿으면 물이 그 높이에 멈추고, 그 높이에 놓이는 기단 부분이 물빛으로 칠해집니다. 위의 링크에서 물음, 데이터 열, 변수, 부분 가운데 아무 마디나 누르면 그 마디가 정하는 부분이 칠해집니다. 둘레의 기단들도 같은 규칙으로 만든 것이라 같은 부분이 함께 칠해집니다.</p>
+      <p class="note" style="margin-top:6px">바닷물은 가장 낮은 간조에 두어 기단 전체가 드러나게 했습니다. 반투명한 판이 기록을 아래에서 위로 훑고, 조건이 채워지는 높이에 닿으면 판이 테두리만 남아 그 높이를 표시합니다. 그 높이로 정해지는 기단 부분은 진한 파랑으로, 나머지는 어둡게 눌러 무엇이 바뀌는지 또렷하게 보입니다. 위의 링크에서 물음, 데이터 열, 변수, 부분 가운데 아무 마디나 누르면 그 마디가 정하는 부분이 칠해집니다. 둘레의 기단들도 같은 규칙으로 만든 것이라 같은 부분이 함께 칠해집니다.</p>
     </div>
     <div class="two" style="margin-top:12px">
       <div class="card">
@@ -615,7 +615,7 @@ footer p + p { margin-top: 4px; }
           <h3>3D 시뮬레이션 · 바꾼 값으로 다시 생긴 기단 <small id="u3-sub"></small></h3>
           <div class="cv3" id="u-3d"><canvas id="u-cv3" aria-label="변수를 바꾸면 다시 생기는 기단 무리 3D"></canvas><span class="hint">끌어서 돌리기 · 휠로 확대 · 두 번 눌러 처음 모습</span><span class="tag" id="u3-tag"></span></div>
           <div class="ctl" style="margin-top:8px"><div class="row"><span>물높이</span></div>
-            <div class="seg" id="u3-w" role="group" aria-label="3D의 물높이"><button data-w="lo" aria-pressed="false">가장 낮은 간조</button><button data-w="T2" aria-pressed="false">가장 낮은 만조</button><button data-w="C" aria-pressed="true">만조의 가운데값</button><button data-w="T1" aria-pressed="false">가장 높은 만조</button></div></div>
+            <div class="seg" id="u3-w" role="group" aria-label="3D의 물높이"><button data-w="lo" aria-pressed="true">가장 낮은 간조</button><button data-w="T2" aria-pressed="false">가장 낮은 만조</button><button data-w="C" aria-pressed="false">만조의 가운데값</button><button data-w="T1" aria-pressed="false">가장 높은 만조</button></div></div>
           <p class="note" id="u3-note" style="margin-top:6px"></p>
         </div>
         <div class="card">
@@ -2990,6 +2990,8 @@ function hlParts(p3, g, s, key, col) {
     return;
   }
   p3.highlight(K2 || [], col);
+  // 고른 부분만 또렷하게: 나머지는 어둡게 눌러 둔다
+  if (K2 && K2.length) for (const q of p3.parts) if (!K2.includes(q.k)) q.m.material.color.copy(q.base).multiplyScalar(0.5);
 }
 function dispose3(v, p3) { if (!p3) return; v.scene.remove(p3.grp); p3.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(mm => mm.dispose()); }); }
 
@@ -3010,17 +3012,19 @@ derive3D = function () {
   const cur = DV[D4.i], zlo = g.ground - 0.8, zhi = Math.max(g.land, g.top) + 0.5, scanZ = zlo + (zhi - zlo) * D4.scan;
   const FOUND = { layer: r.F50, edge: r.T2, connect: g.C, stay: g.P, slope: g.C };
   const sel = LK.sel || cur.k, isVar = DV.some(q => q.k === sel);
-  const w = D4.scan < 1 ? scanZ : isVar ? FOUND[sel] : g.C;
+  // 물은 가장 낮은 간조에 두어 기단 전체가 드러나게 하고, 훑는 높이와 찾은 높이는 얇은 판과 테두리로만 보인다
+  const w = s.q[0], found = isVar ? FOUND[sel] : null;
   if (DD3.wl == null || Math.abs(DD3.wl - w) > 0.01) { DD3.p3.setWater(w, null); DD3.wl = w; }
-  if (D4.scan >= 1) hlParts(DD3.p3, g, s, sel, '#5aa8d4');
+  if (D4.scan >= 1) hlParts(DD3.p3, g, s, sel, '#2f8fd6');
   else { DD3.p3.highlight([], null); const done = DV.slice(0, D4.i).flatMap(q => NODE_KIND[q.k]); for (const q of DD3.p3.parts) if (done.includes(q.k)) q.m.material.color.copy(q.base).multiplyScalar(0.85); }
-  DD3.plane.visible = D4.scan < 1; DD3.plane.position.y = scanZ - gr;
+  DD3.plane.visible = D4.scan < 1 || found != null; DD3.plane.material.opacity = D4.scan < 1 ? 0.14 : 0.0; DD3.plane.position.y = (D4.scan < 1 ? scanZ : found) - gr;
   v.clearLabels('d3');
   const L = (t, x, y, z, c) => v.label(t, new THREE.Vector3(x, y - gr + 0.5, z), c || 'dim lv', 'd3');
   if (D4.scan < 1) L(`훑는 높이 = 물 ${fH(scanZ)}`, -g.R - 6, scanZ, 0, 'dim');
   else {
     const T = g.T, st = T.filter(t => t.k === 'step');
-    L(`바닷물 ${fH(w)}`, DD3.p3.PS.x1 - 14, w, DD3.p3.PS.D * 0.55, 'dim');
+    L(`바닷물 ${fH(w)} (가장 낮은 간조)`, DD3.p3.PS.x1 - 14, w, DD3.p3.PS.D * 0.55, 'dim');
+    if (found != null) L(`찾은 높이 ${fH(found)}`, -g.R - 8, found, g.R * 0.8, 'dim');
     if (sel === 'layer' || sel === 'floors' || sel === 'above') T.filter(t => t.k !== 'step').forEach(t => L(`▽ ${['맨 위', '둘째', '아래'][['top', 'p99', 'p50'].indexOf(t.k)]} 바닥 ${fH(t.z)}`, (t.r0 + t.r1) / 2 * 0.7, t.z, (t.r0 + t.r1) / 2 * 0.7));
     if ((sel === 'edge' || sel === 'steps') && st.length) { L(`수변 단 첫째 ${fH(st[0].z)}`, st[0].r1, st[0].z, 0); L(`수변 단 ${st.length}번째 ${fH(st[st.length - 1].z)}`, st[st.length - 1].r1 * 0.7, st[st.length - 1].z, st[st.length - 1].r1 * 0.7); }
     if (sel === 'connect' || sel === 'neck') L(`▽ 이음목 ${fH(g.C)} · 섬 ${CORE.daysOver(s, g.C)}일`, (g.xn0 + g.xn1) / 2 - CORE.XC, g.C, 0);
@@ -3037,7 +3041,7 @@ derive3D = function () {
 };
 
 // ---------------------------------------------------------------- 4-2. 변수를 바꿔 보기 · 3D 시뮬레이션
-const U3 = { v: null, p3: null, key: '', w: 'C', tm: 0, wl: null };
+const U3 = { v: null, p3: null, key: '', w: 'lo', tm: 0, wl: null, ghost: null };
 function rulesKindOf(k) { const u = UCTL.find(([, items]) => items.some(it => it[0] === k)); return u && u[2].k; }
 function rules3D() {
   const v = U3.v; if (!v) return;
@@ -3051,7 +3055,8 @@ function rules3D() {
   const lv = { lo: s.q[0], T2: r.T2, C: g.C, T1: r.T1 }, w = lv[U3.w];
   if (U3.wl == null || Math.abs(U3.wl - w) > 0.01) { U3.p3.setWater(w, null); U3.wl = w; }
   const hk = U4.hl || U4.pick || rulesKindOf(U4.last);
-  if (hk) hlParts(U3.p3, g, s, hk, '#5aa8d4'); else U3.p3.highlight([], null);
+  if (hk) hlParts(U3.p3, g, s, hk, '#2f8fd6'); else U3.p3.highlight([], null);
+  ghostPlinth(v, g, model(id, CORE.DEF).g);
   v.clearLabels('u3');
   const L = (t, x, y, z, c) => v.label(t, new THREE.Vector3(x, y - gr + 0.5, z), c || 'dim lv', 'u3');
   const T = g.T, st = T.filter(t => t.k === 'step');
@@ -3067,7 +3072,7 @@ function rules3D() {
   const sd = d.T.filter(t => t.k === 'step').length; if (sd !== st.length) ch.push(`수변 단 ${sd}개 → ${st.length}개`);
   if (Math.abs(d.R - g.R) > 0.05) ch.push(`지름 ${(2 * d.R).toFixed(1)} → ${(2 * g.R).toFixed(1)} m`);
   if (Math.abs(d.L - g.L) > 0.05) ch.push(`자락 ${d.L.toFixed(1)} → ${g.L.toFixed(1)} m`);
-  $('#u3-note').innerHTML = (ch.length ? '<b>논문 값과 달라진 것.</b> ' + ch.join(', ') + '. ' : '지금은 논문 값 그대로입니다. 오른쪽 막대를 움직이면 기단 무리가 다시 생깁니다. ')
+  $('#u3-note').innerHTML = (ch.length ? '<b>논문 값과 달라진 것.</b> ' + ch.join(', ') + '. 주황 점선은 논문의 기단 테두리입니다. ' : '지금은 논문 값 그대로입니다. 오른쪽 막대를 움직이면 기단 무리가 다시 생깁니다. ')
     + (hk ? `물빛으로 칠한 부분은 지금 고른 변수(${(UCTL.find(u => u[2].k === hk) || [''])[0]})가 정하는 부분입니다. ` : '')
     + '둘레의 작은 기단들은 같은 규칙으로 맨 위 바닥에 물이 오는 날을 달리해 만든 것입니다.';
   $('#u3-sub').textContent = `${s.ko} · 실제 비례`;
@@ -3088,6 +3093,18 @@ function V3w(st) { const a = Math.min(...st.map(t => t.r1 - t.r0)), b = Math.max
     $('#u-ctl').addEventListener('pointerdown', e => { const gEl = e.target.closest('.group[data-k]'); if (gEl) { U4.pick = gEl.dataset.k; inval('rules'); } });
   };
   U.draw = function () { _draw.call(this); rules3D(); };
+}
+
+// 논문의 기단을 점선 고리로 겹쳐 그려, 무엇이 달라졌는지 바로 보이게 한다
+function ghostPlinth(v, g, gd) {
+  if (U3.ghost) { v.scene.remove(U3.ghost); U3.ghost.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); U3.ghost = null; }
+  const same = gd.T.length === g.T.length && gd.T.every((t, i) => Math.abs(t.z - g.T[i].z) < 1e-3 && Math.abs(t.r1 - g.T[i].r1) < 1e-3) && Math.abs(gd.L - g.L) < 1e-3;
+  if (same) return;
+  const G = new THREE.Group(), gr = g.ground, M = new THREE.LineDashedMaterial({ color: 0xd2552d, dashSize: 0.8, gapSize: 0.5, transparent: true, opacity: 0.95, depthTest: false });
+  const ring = (r, y) => { const pts = []; for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 2; pts.push(new THREE.Vector3(r * Math.cos(a), y, r * Math.sin(a))); } const L = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), M); L.computeLineDistances(); L.renderOrder = 9; L.userData.noWire = true; G.add(L); };
+  gd.T.forEach(t => ring(t.r1, t.z - gr + 0.03));
+  if (gd.L > 0.1) ring(gd.R + gd.L, 0.05);
+  U3.ghost = G; v.scene.add(G);
 }
 
 // ---------------------------------------------------------------- 5. 바닷물 시뮬레이션
